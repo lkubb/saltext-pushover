@@ -51,7 +51,7 @@ Source = "https://github.com/salt-extensions/saltext-pushover"
 Tracker = "https://github.com/salt-extensions/saltext-pushover/issues"
 
 [project.optional-dependencies]
-changelog = ["towncrier==22.12.0"]
+changelog = ["towncrier==24.7.1"]
 dev = [
     "nox",
     "pre-commit>=2.4.0",
@@ -63,7 +63,7 @@ docs = [
   "sphinx-prompt",
   "sphinxcontrib-spelling",
   "sphinx-copybutton",
-  "towncrier==22.12.0",
+  "towncrier==24.7.1",
   "sphinxcontrib-towncrier",
   "myst_parser",
   "furo",
