@@ -1,0 +1,49 @@
+name: Prepare release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938  # v4.2.0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3  # v5.2.0
+        with:
+          python-version: '3.10'
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,docs]'
+
+      - name: Get next version
+        id: next-version
+        run: |
+          version=$(python tools/version.py next)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Update CHANGELOG.md and push to release PR
+        env:
+          NEXT_VERSION: ${{ steps.next-version.outputs.version }}
+        run: towncrier build --yes --version "${NEXT_VERSION}"
+
+      - name: Create/Update release PR
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f  # v7.0.5
+        with:
+          commit-message: Release ${{ steps.next-version.outputs.version }}
+          branch: release/auto
+          sign-commits: true
+          title: Next release
+          body: |
+            This automated PR builds the latest changelog.
+            When you merge it, a new release is published.
