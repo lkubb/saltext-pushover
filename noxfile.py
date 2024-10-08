@@ -11,7 +11,7 @@ import nox
 from nox.command import CommandFailed
 from nox.virtualenv import VirtualEnv
 
-# Nox options
+## Nox options
 #  Reuse existing virtualenvs
 nox.options.reuse_existing_virtualenvs = True
 #  Don't fail on missing interpreters
