@@ -5,27 +5,76 @@ on:
   push:
     tags:
       - "v*"  # Only tags starting with "v" for "v1.0.0", etc.
+  pull_request:
+    types:
+      - closed
 
 jobs:
-  get_tag_version:
+  get_version_tag:
+    name: Extract version from tag
     runs-on: ubuntu-24.04
+    if: github.event_name == 'push'
     outputs:
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.get_version_tag.outputs.version }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938  # v4.2.0
 
       - name: Extract tag name
-        id: get_version
+        id: get_version_tag
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
+      - name: Ensure changelog was rendered
+        run: test "${{ steps.get_version_tag.outputs.version }}" = "$(python tools/version.py)"
+
+  get_version_pr:
+    name: Extract version from merged release PR
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write  # To push the new tag. This does not cause a tag event.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.repository == github.event.pull_request.head.repo.full_name &&
+      github.head_ref == 'release/auto' &&
+      github.event.pull_request.merged == true &&
+      github.base_ref == github.event.repository.default_branch
+
+    outputs:
+      version: ${{ steps.get_version_pr.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938  # v4.2.0
+
+      - name: Extract version of merged release PR
+        id: get_version_pr
+        run: echo "version=$(python tools/version.py)" >> "$GITHUB_OUTPUT"
+
+      - name: Check extracted version matches PR title
+        run: test "Release v{{ steps.get_version_pr.outputs.version }}" = "{{ github.event.pull_request.title }}"
+
+      - name: Create tag for release
+        uses: mathieudutour/github-tag-action@d28fa2ccfbd16e871a4bdf35e11b3ad1bd56c0c1  # v6.2
+        with:
+          github_token: ${{ github.token }}
+          custom_tag: ${{ steps.get_version_pr.outputs.version }}
+
   call_central_workflow:
-    needs: get_tag_version
+    if: >-
+      always() &&
+      (
+        needs.get_version_tag.result == 'success' ||
+        needs.get_version_pr.result == 'success'
+      )
+    needs:
+      - get_version_tag
+      - get_version_pr
     uses: ./.github/workflows/ci.yml
     with:
-      deploy-docs: true
+      deploy-docs: false
       release: true
-      version: ${{ needs.get_tag_version.outputs.version }}
+      version: ${{ github.event_name == 'tag' && needs.get_version_tag.outputs.version || needs.get_version_pr.outputs.version }}
     permissions:
       contents: write
       id-token: write
