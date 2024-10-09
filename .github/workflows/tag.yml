@@ -30,6 +30,27 @@ jobs:
       - name: Ensure changelog was rendered
         run: test "${{ steps.get_version_tag.outputs.version }}" = "$(python tools/version.py)"
 
+  close_autopr_on_tag:
+    name: Close release PR on manual tag
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push'
+    needs:
+      - get_version_tag
+
+    steps:
+      - name: Find Pull Request
+        uses: juliangruber/find-pull-request-action@v1
+        id: find-pull-request
+        with:
+          branch: release/auto
+          base: ${{ github.event.repository.default_branch }}
+          state: open
+
+      - name: Close release PR
+        if: steps.find-pull-request.outputs.number != ''
+        run: |
+          gh pr close --comment "This release was triggered manually" --delete-branch "${{ steps.find-pull-request.outputs.number }}"
+
   get_version_pr:
     name: Extract version from merged release PR
     runs-on: ubuntu-24.04
