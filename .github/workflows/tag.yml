@@ -48,6 +48,8 @@ jobs:
 
       - name: Close release PR
         if: steps.find-pull-request.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr close --comment "This release was triggered manually" --delete-branch "${{ steps.find-pull-request.outputs.number }}"
 
