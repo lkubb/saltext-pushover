@@ -4,6 +4,8 @@ Send notifications via `Pushover <https://www.pushover.net>`_.
 .. important::
     See :ref:`Configuration <pushover-setup>` for a description of
     available configuration parameters.
+
+cause CI to run
 """
 
 import logging
